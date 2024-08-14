@@ -11,23 +11,17 @@ func GetRouter() http.Handler {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/articles",
-		handlers.MakeHttpHandlerFunc(handlers.HandleGetAllArticles)).
-		Methods("GET", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleGetAllArticles)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/articles",
-		handlers.MakeHttpHandlerFunc(handlers.HandleCreateArticle)).
-		Methods("PUT", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleCreateArticle)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/articles",
-		handlers.MakeHttpHandlerFunc(handlers.HandleDeleteAllArticles)).
-		Methods("DELETE", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleDeleteAllArticles)).Methods("DELETE", "OPTIONS")
 	router.HandleFunc("/articles/{id}",
-		handlers.MakeHttpHandlerFunc(handlers.HandleGetArticleById)).
-		Methods("GET", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleGetArticleById)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/articles/{id}",
-		handlers.MakeHttpHandlerFunc(handlers.HandleEditArticleById)).
-		Methods("PUT", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleUpdateArticleById)).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/articles/{id}",
-		handlers.MakeHttpHandlerFunc(handlers.HandleDeleteArticleById)).
-		Methods("DELETE", "OPTIONS")
+		handlers.MakeHttpHandlerFunc(handlers.HandleDeleteArticleById)).Methods("DELETE", "OPTIONS")
 
 	return router
 }

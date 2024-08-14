@@ -1,11 +1,11 @@
-package log
+package helpers
 
 import (
 	"log"
 	"net/http"
 )
 
-func NewRequest(r *http.Request) {
+func LogNewRequest(r *http.Request) {
 	log.Printf("%sREQUEST:%s Addr: %s    url: %s    method: %s",
 		Green, Reset,
 		r.RemoteAddr,
@@ -14,11 +14,10 @@ func NewRequest(r *http.Request) {
 	)
 }
 
-func Error(e string, s http.ConnState) {
-	log.Printf("%sERROR:%s %s    sent status code: %d",
+func LogError(e string) {
+	log.Printf("%sERROR:%s %s",
 		Red, Reset,
 		e,
-		s,
 	)
 }
 
