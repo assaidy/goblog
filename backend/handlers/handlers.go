@@ -31,9 +31,7 @@ func HandleGetAllArticles(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	writeJSON(w, articles)
-
-	return nil
+	return writeJSON(w, articles, http.StatusOK)
 }
 
 func HandleDeleteAllArticles(w http.ResponseWriter, r *http.Request) error {
@@ -53,9 +51,7 @@ func HandleGetArticleById(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	writeJSON(w, article)
-
-	return nil
+	return writeJSON(w, article, http.StatusOK)
 }
 
 func HandleCreateArticle(w http.ResponseWriter, r *http.Request) error {
@@ -72,7 +68,13 @@ func HandleCreateArticle(w http.ResponseWriter, r *http.Request) error {
 		PublishDate: time.Now().UTC(),
 	}
 
-	return db.CreateArticle(&article)
+	if err = db.CreateArticle(&article); err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusCreated)
+
+	return nil
 }
 
 func HandleDeleteArticleById(w http.ResponseWriter, r *http.Request) error {
@@ -124,12 +126,30 @@ func MakeHttpHandlerFunc(f ApiFunc) http.HandlerFunc {
 		if err != nil {
 			helpers.LogError(err.Error())
 
-			// TODO: handle varias error
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errorResponse := map[string]string{"error": err.Error()}
+
+			switch err.(type) {
+			case *models.DBError:
+				errorResponse = map[string]string{"error": "something went wrong"}
+				writeJSON(w, errorResponse, http.StatusInternalServerError)
+			case *models.NotFoundError:
+				writeJSON(w, errorResponse, http.StatusNotFound)
+			case *models.BadRequest:
+				writeJSON(w, errorResponse, http.StatusBadRequest)
+			default:
+				errorResponse = map[string]string{"error": "bad request"}
+				writeJSON(w, errorResponse, http.StatusBadRequest)
+			}
+			return
 		}
 	}
 }
 
-func writeJSON(w http.ResponseWriter, v any) error {
-	return json.NewEncoder(w).Encode(v)
+func writeJSON(w http.ResponseWriter, data interface{}, statusCode int) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		return models.NewJSONEncodeError(err)
+	}
+	return nil
 }
