@@ -1,3 +1,2 @@
-# Personal Blog Website With API in Golang.
+# An API in Golang for Meduim-like blogging app.
 
-Not completed.
