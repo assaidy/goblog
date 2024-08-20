@@ -3,15 +3,21 @@ package utils
 import (
 	"fmt"
 	"net/mail"
+	"unicode"
 
 	"github.com/assaidy/goblog/repo"
 )
 
-// ValidateRegisterUser checks if the email is valid and if the username or email are already used.
+// ValidateRegisterUser checks if the email and username are valid and not already used.
 func ValidateRegisterUser(username, email string, s repo.Storer) (validationErrors []string, internalError error) {
 	// Validate email format
 	if err := validateEmail(email); err != nil {
 		return []string{err.Error()}, nil
+	}
+
+	// Validate username to not start with a number
+	if err := validateUsername(username); err != nil {
+		validationErrors = append(validationErrors, err.Error())
 	}
 
 	// Check if username or email are already used
@@ -54,3 +60,16 @@ func checkUsernameAndEmail(username, email string, s repo.Storer, validationErro
 	return nil
 }
 
+// validateUsername checks if the username starts with a letter.
+func validateUsername(username string) error {
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	// Check if the first character is a digit
+	if unicode.IsDigit(rune(username[0])) {
+		return fmt.Errorf("username cannot start with a number")
+	}
+
+    return nil
+}
