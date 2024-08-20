@@ -1,2 +1,2 @@
-# An API in Golang for Meduim-like blogging app.
+# A multi-user blog backend in golang.
 
