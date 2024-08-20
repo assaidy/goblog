@@ -1,13 +1,14 @@
 package utils
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
+// Config holds the configuration values for the application
 type Config struct {
 	Port               string
 	DBHost             string
@@ -19,10 +20,12 @@ type Config struct {
 	JWTExpirationHours int
 }
 
+// LoadConfig loads environment variables into a Config struct
+// It returns an error if loading the .env file fails
 func LoadConfig() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("No .env file found. please check the .env_template file")
+	// Load .env file if it exists, ignore if it doesn't
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using default values or environment variables.")
 	}
 
 	config := &Config{
@@ -39,20 +42,22 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
+// getEnv retrieves the value of the environment variable named by the key.
+// If the variable is not present, it returns the defaultValue.
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-
 	return defaultValue
 }
 
+// getEnvAsInt retrieves the value of the environment variable named by the key as an integer.
+// If the variable is not present or cannot be converted to an integer, it returns the defaultValue.
 func getEnvAsInt(key string, defaultValue int) int {
 	if valueStr, exists := os.LookupEnv(key); exists {
-		if value, err := strconv.Atoi(valueStr); err != nil {
+		if value, err := strconv.Atoi(valueStr); err == nil {
 			return value
 		}
 	}
-
 	return defaultValue
 }
