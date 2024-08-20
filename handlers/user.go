@@ -132,11 +132,6 @@ func (h *UserHandler) HandleUpdateUserById(w http.ResponseWriter, r *http.Reques
 	}
 	defer r.Body.Close()
 
-	// Authorize user
-	if err := utils.AuthorizeUser(id, r); err != nil {
-		return err
-	}
-
 	user, err := h.store.UpdateUserById(id, &updateReq)
 	if err != nil {
 		return err
@@ -148,11 +143,6 @@ func (h *UserHandler) HandleUpdateUserById(w http.ResponseWriter, r *http.Reques
 
 func (h *UserHandler) HandleDeleteUserById(w http.ResponseWriter, r *http.Request) error {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-
-	// Authorize user
-	if err := utils.AuthorizeUser(id, r); err != nil {
-		return err
-	}
 
 	if err := h.store.DeleteUserById(id); err != nil {
 		return err

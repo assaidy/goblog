@@ -1,14 +1,74 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/assaidy/goblog/models"
 	"github.com/assaidy/goblog/repo"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// JWTAuthMiddleware checks if the request contains a valid JWT token and adds the user ID to the request context.
+func JWTAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the token from the Authorization header
+		tokenString := r.Header.Get("Authorization")
+		if tokenString == "" {
+			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+
+		// Remove the "Bearer " prefix from the token string
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+		// Verify the token
+		userID, err := verifyTokenAndGetUserID(tokenString)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		// Add the user ID to the request context
+		ctx := context.WithValue(r.Context(), "userID", userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// verifyTokenAndGetUserID verifies the JWT token and extracts the user ID from it.
+func verifyTokenAndGetUserID(tokenString string) (int, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return 0, fmt.Errorf("failed to load config")
+	}
+
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.JWTSecret), nil
+	})
+
+	// Check if there was an error during parsing or if the token is invalid
+	if err != nil || !token.Valid {
+		return 0, UnAuthorized(fmt.Errorf("invalid token: %v", err))
+	}
+
+	// Extract the claims (the payload of the token)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, UnAuthorized(fmt.Errorf("invalid token claims"))
+	}
+
+	// Extract the user ID from the claims
+	userID, ok := claims["userId"].(float64)
+	if !ok {
+		return 0, UnAuthorized(fmt.Errorf("invalid token claims"))
+	}
+
+	return int(userID), nil
+}
 
 // AuthenticateUser returns user data along with a JWT token
 func AuthenticateUser(loginReq models.UserLoginRequest, s repo.Storer) (map[string]any, error) {
@@ -38,24 +98,6 @@ func AuthenticateUser(loginReq models.UserLoginRequest, s repo.Storer) (map[stri
 	return resp, nil
 }
 
-// AuthorizeUser checks if the JWT token provided in the request is valid
-func AuthorizeUser(id int, r *http.Request) error {
-	tokenString := r.Header.Get("Authorization")
-	if tokenString == "" {
-		return UnAuthorized(fmt.Errorf("missing authorization header"))
-	}
-
-	// Remove "Bearer " prefix from the token string
-	tokenString = tokenString[len("Bearer "):]
-
-	// Verify the token
-	if err := verifyToken(tokenString); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // createToken generates a JWT token for a given user ID
 func createToken(id int) (string, error) {
 	config, err := LoadConfig()
@@ -68,8 +110,8 @@ func createToken(id int) (string, error) {
 
 	// Create a new JWT token with the user ID and expiration time
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":  id,
-		"exp": expirationTime,
+		"userId": id,
+		"exp":    expirationTime,
 	})
 
 	// Sign the token using the configured JWT secret
@@ -79,29 +121,4 @@ func createToken(id int) (string, error) {
 	}
 
 	return tokenString, nil
-}
-
-// verifyToken checks if the provided JWT token string is valid
-func verifyToken(tokenString string) error {
-	config, err := LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load config")
-	}
-
-	// Parse the token using the configured JWT secret
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.JWTSecret), nil
-	})
-
-	// Return an unauthorized error if the token is invalid or parsing fails
-	if err != nil {
-		return UnAuthorized(fmt.Errorf("invalid token: %v", err))
-	}
-
-	// Check if the token is valid
-	if !token.Valid {
-		return UnAuthorized(fmt.Errorf("invalid token"))
-	}
-
-	return nil
 }
