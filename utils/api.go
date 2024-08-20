@@ -2,8 +2,11 @@ package utils
 
 import (
 	"encoding/json"
+	"github.com/assaidy/goblog/models"
+	"github.com/gorilla/mux"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 // ApiFunc is a custom type that defines a function signature returning an error.
@@ -45,3 +48,29 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	return nil
 }
 
+// TODO: apply to the code
+// DecodeAndValidateJSON decodes JSON from the request body and validates the request.
+func DecodeAndValidateJSON(r *http.Request, req models.Request) error {
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		r.Body.Close()
+		return InvalidJSON()
+	}
+	defer r.Body.Close()
+
+	if validationErrors := req.Validate(); len(validationErrors) > 0 {
+		return InvalidRequestData(validationErrors)
+	}
+
+	return nil
+}
+
+// TODO: apply to the code
+// parseIDFromRequest parses the ID from the request URL.
+func ParseIDFromRequest(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, InvalidRequestData([]string{"invalid ID format"})
+	}
+	return id, nil
+}

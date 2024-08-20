@@ -38,8 +38,8 @@ func NewRouter(store repo.Storer) http.Handler {
 
 	router.HandleFunc("/api/posts",
 		utils.MakeHandlerFunc(postHandler.HandleGetAllPosts)).Methods("GET")
-    router.HandleFunc("/api/users/{userId}/posts",
-        utils.MakeHandlerFunc(postHandler.GetAllPostsByUser)).Methods("GET")
+    router.HandleFunc("/api/users/{userId:[0-9]+}/posts",
+        utils.MakeHandlerFunc(postHandler.HandleGetAllPostsByUser)).Methods("GET")
 	router.HandleFunc("/api/posts/{id:[0-9]+}",
 		utils.MakeHandlerFunc(postHandler.HandleGetPostById)).Methods("GET")
 

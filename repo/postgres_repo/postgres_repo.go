@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/assaidy/goblog/models"
 	"github.com/assaidy/goblog/utils"
 	_ "github.com/lib/pq"
@@ -35,21 +37,12 @@ func (pg *PostgresRepo) CreateUser(user *models.User) (*models.User, error) {
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id;`
 
-	var userId int
-	err := pg.DB.QueryRow(query, user.FullName, user.Username, user.Email, user.Password, user.Bio, user.JoinedAt).Scan(&userId)
+	err := pg.DB.QueryRow(query, user.FullName, user.Username, user.Email, user.Password, user.Bio, user.JoinedAt).Scan(&user.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &models.User{
-		Id:       userId,
-		FullName: user.FullName,
-		Username: user.Username,
-		Email:    user.Email,
-		Password: user.Password,
-		Bio:      user.Bio,
-		JoinedAt: user.JoinedAt,
-	}, nil
+	return user, nil
 }
 
 // GetUserById retrieves a user by their ID.
@@ -226,4 +219,161 @@ func (pg *PostgresRepo) IsEmailUsed(email string) (bool, error) {
 	}
 
 	return exists == 1, nil
+}
+
+func (pg *PostgresRepo) CreatePost(post *models.Post) (*models.Post, error) {
+	query := `
+    INSERT INTO posts (title, content, author_id, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id;`
+
+	err := pg.DB.QueryRow(query, post.Title, post.Content, post.AuthorId, post.CreatedAt, post.UpdatedAt).Scan(&post.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (pg *PostgresRepo) GetPostById(id int) (*models.Post, error) {
+	query := `
+    SELECT id, title, content, author_id, created_at, updated_at 
+    FROM posts
+    WHERE id = $1`
+
+	post := &models.Post{}
+	err := pg.DB.QueryRow(query, id).Scan(
+		&post.Id,
+		&post.Title,
+		&post.Content,
+		&post.AuthorId,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, utils.NotFound(fmt.Errorf("no post with id %d", id))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (pg *PostgresRepo) UpdatePostById(id int, postReq *models.PostCreateOrUpdateRequest) (*models.Post, error) {
+	query := `
+    UPDATE users SET
+        title = $1,
+        content = $2,
+    WHERE id = $3
+    RETURNING author_id, created_at`
+
+	post := &models.Post{
+		Id:        id,
+		Title:     postReq.Title,
+		Content:   postReq.Content,
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	err := pg.DB.QueryRow(query).Scan(
+		&post.AuthorId,
+		&post.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, utils.NotFound(fmt.Errorf("no post with id %d", id))
+		}
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (pg *PostgresRepo) DeletePostById(id, authorId int) error {
+	query := `DELETE FROM posts WHERE id = $1`
+
+	result, err := pg.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	affectedRows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affectedRows == 0 {
+		return utils.NotFound(fmt.Errorf("no post with id %d found", id))
+	}
+
+	return nil
+}
+
+func (pg *PostgresRepo) GetAllPosts() ([]*models.Post, error) {
+	query := `
+    SELECT id, title, content, author_id, created_at, updated_at 
+    FROM posts`
+
+	rows, err := pg.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := make([]*models.Post, 0)
+	for rows.Next() {
+		post := &models.Post{}
+		if err := rows.Scan(
+			&post.Id,
+			&post.Title,
+			&post.Content,
+			&post.AuthorId,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+}
+
+func (pg *PostgresRepo) GetAllPostsByAuthor(authorId int) ([]*models.Post, error) {
+	query := `
+    SELECT id, title, content, author_id, created_at, updated_at 
+    FROM posts
+    WHERE author_id = $1`
+
+	rows, err := pg.DB.Query(query, authorId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := make([]*models.Post, 0)
+	for rows.Next() {
+		post := &models.Post{}
+		if err := rows.Scan(
+			&post.Id,
+			&post.Title,
+			&post.Content,
+			&post.AuthorId,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }

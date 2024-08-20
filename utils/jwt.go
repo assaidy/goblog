@@ -122,3 +122,13 @@ func createToken(id int) (string, error) {
 
 	return tokenString, nil
 }
+
+// TODO: apply to the code
+// getUserIDFromContext retrieves the user ID from the request context.
+func GetUserIDFromContext(r *http.Request) (int, error) {
+	userId, ok := r.Context().Value("userId").(int)
+	if !ok {
+		return 0, UnAuthorized(fmt.Errorf("user ID missing or invalid"))
+	}
+	return userId, nil
+}

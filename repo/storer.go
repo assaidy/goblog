@@ -13,5 +13,11 @@ type Storer interface {
 	GetAllUsers() ([]*models.User, error)
 	IsUsernameUsed(string) (bool, error)
 	IsEmailUsed(string) (bool, error)
-}
 
+	CreatePost(*models.Post) (*models.Post, error)
+	GetPostById(int) (*models.Post, error)
+	UpdatePostById(int, *models.PostCreateOrUpdateRequest) (*models.Post, error)
+	DeletePostById(int, int) error
+	GetAllPosts() ([]*models.Post, error)
+	GetAllPostsByAuthor(int) ([]*models.Post, error)
+}
