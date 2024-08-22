@@ -1,5 +1,7 @@
 package postgres_repo
 
+// TODO: when removing users, use their ID's for new users.
+
 import (
 	"database/sql"
 	"errors"
