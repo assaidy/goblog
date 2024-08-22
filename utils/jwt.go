@@ -26,14 +26,14 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 		// Verify the token
-		userID, err := verifyTokenAndGetUserID(tokenString)
+		userId, err := verifyTokenAndGetUserID(tokenString)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
 			return
 		}
 
 		// Add the user ID to the request context
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), "userId", userId)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
