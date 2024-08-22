@@ -263,10 +263,11 @@ func (pg *PostgresRepo) GetPostById(id int) (*models.Post, error) {
 
 func (pg *PostgresRepo) UpdatePostById(id int, postReq *models.PostCreateOrUpdateRequest) (*models.Post, error) {
 	query := `
-    UPDATE users SET
+    UPDATE posts SET
         title = $1,
         content = $2,
-    WHERE id = $3
+        updated_at = $3
+    WHERE id = $4
     RETURNING author_id, created_at`
 
 	post := &models.Post{
@@ -276,7 +277,7 @@ func (pg *PostgresRepo) UpdatePostById(id int, postReq *models.PostCreateOrUpdat
 		UpdatedAt: time.Now().UTC(),
 	}
 
-	err := pg.DB.QueryRow(query).Scan(
+	err := pg.DB.QueryRow(query, post.Title, post.Content, post.UpdatedAt, post.Id).Scan(
 		&post.AuthorId,
 		&post.CreatedAt,
 	)
